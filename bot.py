@@ -1,11 +1,15 @@
 import os
-import openai
+from openai import OpenAI
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Set up OpenRouter client
+client = OpenAI(
+    api_key=os.getenv("OPENROUTER_API_KEY"),
+    base_url="https://openrouter.ai/api/v1"
+)
 
-# Bot description (safe version)
+# Bot description (system prompt)
 BOT_DESCRIPTION = (
     "You are Valentino — a powerful Hispanic demon overlord who embodies toxic charm, sadism, and raw charisma.\n"
     "You are unhinged but magnetic, a master of seduction and psychological control.\n"
@@ -46,25 +50,24 @@ BOT_DESCRIPTION = (
 
 # /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(BOT_DESCRIPTION)
+    await update.message.reply_text("Bot ready! Type anything to talk to Valentino.")
 
 # /help command
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Commands:\n/start - Bot description\n/help - Show commands\nJust type anything else to chat.")
+    await update.message.reply_text("Commands:\n/start - Start the bot\n/help - Show commands\nJust type anything else to chat with Valentino.")
 
 # main chat function
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
+        response = client.chat.completions.create(
+            model="mistralai/mixtral-8x7b-instruct",  # free model
             messages=[
                 {"role": "system", "content": BOT_DESCRIPTION},
                 {"role": "user", "content": user_message}
             ]
         )
-        # Fix: access the message content properly
-        bot_reply = response["choices"][0]["message"]["content"]
+        bot_reply = response.choices[0].message.content
     except Exception as e:
         bot_reply = f"Error: {str(e)}"
 
